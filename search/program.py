@@ -3,6 +3,7 @@
 
 from .core import CellState, Coord, Direction, MoveAction
 from .utils import render_board
+from collections import deque
 
 
 def search(
@@ -30,7 +31,7 @@ def search(
     print(render_board(board, ansi=True))
 
     # Do some impressive AI stuff here to find the solution...
-    # ...
+    # ...``
     # ... (your solution goes here!)
     # ...
 
@@ -38,11 +39,23 @@ def search(
     # output format. Of course, you should instead return the result of your
     # search algorithm. Remember: if no solution is possible for a given input,
     # return `None` instead of a list.
-    return [
-        MoveAction(Coord(0, 5), [Direction.Down]),
-        MoveAction(Coord(1, 5), [Direction.DownLeft]),
-        MoveAction(Coord(3, 3), [Direction.Left]),
-        MoveAction(Coord(3, 2), [Direction.Down, Direction.Right]),
-        MoveAction(Coord(5, 4), [Direction.Down]),
-        MoveAction(Coord(6, 4), [Direction.Down]),
-    ]
+    # return [
+    #     MoveAction(Coord(0, 5), [Direction.Down]),
+    #     MoveAction(Coord(1, 5), [Direction.DownLeft]),
+    #     MoveAction(Coord(3, 3), [Direction.Left]),
+    #     MoveAction(Coord(3, 2), [Direction.Down, Direction.Right]),
+    #     MoveAction(Coord(5, 4), [Direction.Down]),
+    #     MoveAction(Coord(6, 4), [Direction.Down]),
+    # ]
+    
+    # Find the starting position of the red frog
+    
+    #return none if no red frog is founnd
+
+    # define valid moves as down, down-left, down-right
+
+    # initialise a queue and visited set for BFS 
+
+    #find the shortest path to the last row using BFS
+
+    #if no path is found return None
