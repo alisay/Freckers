@@ -55,7 +55,7 @@ def search(
                 return True
         return False
 
-    def get_successors(state: dict[Coord, CellState]) -> list[tuple[dict[Coord, CellState], MoveAction]]:
+    def get_successors(state: dict[Coord, CellState], path: list[MoveAction]) -> list[tuple[dict[Coord, CellState], list[MoveAction]]]:
         successors = []
         for coord, cell in state.items():
             if cell == CellState.RED:
@@ -69,12 +69,12 @@ def search(
                                     new_state = state.copy()
                                     new_state[new_coord] = CellState.RED
                                     new_state[coord] = CellState.LILY_PAD
-                                    successors.append((new_state, MoveAction(coord, direction)))
+                                    successors.append((new_state, path + [MoveAction(coord, direction)]))
                     except ValueError:
                         continue
 
                 # Check for jumps over frogs onto a lily pad
-                def find_jumps(current_coord, visited, directions):
+                def find_jumps(current_coord, visited, current_path):
                     for direction in Direction:
                         try:
                             intermediate_coord = current_coord + direction
@@ -91,13 +91,14 @@ def search(
                                     new_state[jump_coord] = CellState.RED
                                     new_state[coord] = CellState.LILY_PAD
                                     new_state[intermediate_coord] = CellState.LILY_PAD
+                                    new_path = current_path + [MoveAction(coord, direction)]
                                     visited.add(jump_coord)
-                                    successors.append((new_state, MoveAction(coord, directions + [direction])))
-                                    find_jumps(jump_coord, visited, directions + [direction])
+                                    find_jumps(jump_coord, visited, new_path)
+                                    successors.append((new_state, new_path))
                         except ValueError:
                             continue
 
-                find_jumps(coord, {coord}, [])
+                find_jumps(coord, {coord}, path)
         return successors
 
     start_state = board
@@ -111,10 +112,10 @@ def search(
         if is_goal(current_state):
             return path
 
-        for successor, move in get_successors(current_state):
+        for successor, new_path in get_successors(current_state, path):
             successor_key = frozenset(successor.items())
             if successor_key not in visited:
                 visited.add(successor_key)
-                queue.append((successor, path + [move]))
+                queue.append((successor, new_path))
 
     return None
