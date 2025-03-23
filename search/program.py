@@ -80,14 +80,30 @@ def search(
 
         # Generate all possible next positions
         for move in valid_moves:
-            next_position = current_position + move
+            adjacent = current_position + move # next position if the frog moves to the adjacent cell
 
-            # check if the next position is valid. This means there is a lily pad adjacent or a frog followed immediately by a lily pad.  The position is not visited. 
-            adjacent_move = board[next_position] == CellState.LILY_PAD
-            hop = next_position + move in board and board[next_position + move] == CellState.LILY_PAD
-            if next_position in board and (adjacent_move or hop) and next_position not in visited:
-                queue.append((next_position, path + [MoveAction(next_position, [move])]))
-                visited.add(next_position)
+            # Adjacent move: check if there is an unvisited lily pad
+            if (
+                adjacent in board 
+                and board[adjacent] == CellState.LILY_PAD 
+                and adjacent not in visited
+            ):
+                queue.append((adjacent, path + [MoveAction(current_position, move)]))
+                visited.add(adjacent)
+
+            jump_position = adjacent + move  # next position if the frog jumps over the lily pad
+
+            # Jump move: check if there is a frog and a valid landing spot
+            if (
+                adjacent in board and board[adjacent] in {CellState.RED, CellState.BLUE}  # A frog is in the way
+                and jump_position in board and board[jump_position] == CellState.LILY_PAD  # Landing spot is a lily pad
+                and jump_position not in visited 
+            ):
+                queue.append((jump_position, path + [MoveAction(coord, move)]))
+                visited.add(jump_position)
+
+
+
 
     # If no path is found, return None
     return None
