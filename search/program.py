@@ -74,7 +74,7 @@ def search(
                         continue
 
                 # Check for jumps over frogs onto a lily pad
-                def find_jumps(current_coord, visited, current_path):
+                def find_jumps(current_coord, visited, current_path, directions):
                     for direction in Direction:
                         try:
                             intermediate_coord = current_coord + direction
@@ -91,14 +91,15 @@ def search(
                                     new_state[jump_coord] = CellState.RED
                                     new_state[coord] = CellState.LILY_PAD
                                     new_state[intermediate_coord] = CellState.LILY_PAD
-                                    new_path = current_path + [MoveAction(coord, direction)]
+                                    new_path = current_path + [MoveAction(current_coord, direction)]
                                     visited.add(jump_coord)
-                                    find_jumps(jump_coord, visited, new_path)
-                                    successors.append((new_state, new_path))
+                                    find_jumps(jump_coord, visited, new_path, directions + [direction])
+                                    successors.append((new_state, path + [MoveAction(coord, directions + [direction])]))
+                                    break  # Ensure only one entry is added for multiple jumps
                         except ValueError:
                             continue
 
-                find_jumps(coord, {coord}, path)
+                find_jumps(coord, {coord}, path, [])
         return successors
 
     start_state = board
