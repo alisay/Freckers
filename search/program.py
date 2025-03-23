@@ -1,7 +1,7 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
 
-from .core import CellState, Coord, Direction, MoveAction
+from .core import BOARD_N, CellState, Coord, Direction, MoveAction
 from .utils import render_board
 from collections import deque
 
@@ -75,29 +75,33 @@ def search(
         current_position, path = queue.popleft()
 
         # Check if the current position is in the last row
-        if current_position.y == 0:
+        if current_position.r == BOARD_N - 1:
             return path
 
         # Generate all possible next positions
         for move in valid_moves:
             adjacent = current_position + move # next position if the frog moves to the adjacent cell
-            jump_position = adjacent + move # next position if the frog jumps over the lily pad
+            adjacent_in_board = (0 <= adjacent.r < BOARD_N and 0 <= adjacent.c < BOARD_N)
 
-            # Check if the adjacent cell is in the board and not visited
-            if adjacent in board and adjacent not in visited:
-                # Check if the adjacent cell is occupied by a frog
-                if board[adjacent] in {CellState.RED, CellState.BLUE}:
-                    # Check if the jump position is in the board and not visited
-                    if jump_position in board and jump_position not in visited:
-                        # Add the jump position to the queue
-                        queue.append((jump_position, path + [MoveAction(current_position, [move])]))
-                        visited.add(jump_position)
-                # Check if the adjacent cell is occupied by a lily pad
-                elif board[adjacent] == CellState.LILY_PAD:
-                    # Add the adjacent cell to the queue
-                    queue.append((adjacent, path + [MoveAction(current_position, [move])]))
-                    visited.add(adjacent)
+            # Adjacent move: check if there is an unvisited lily pad
+            if (
+                adjacent_in_board 
+                and board[adjacent] == CellState.LILY_PAD 
+                and adjacent not in visited
+            ):
+                queue.append((adjacent, path + [MoveAction(current_position, move)]))
+                visited.add(adjacent)
+ 
+            jump_position = adjacent + move  # next position if the frog jumps over the lily pad
+            jump_in_board = (0 <= jump_position.r < BOARD_N and 0 <= jump_position.c < BOARD_N)
 
-
+            # Jump move: check if there is a frog and a valid landing spot
+            if (
+                adjacent_in_board and board[adjacent] in {CellState.RED, CellState.BLUE}  # A frog is in the way
+                and jump_in_board and board[jump_position] == CellState.LILY_PAD  # Landing spot is a lily pad
+                and jump_position not in visited 
+            ):
+                queue.append((jump_position, path + [MoveAction(coord, move)]))
+                visited.add(jump_position)
     # If no path is found, return None
     return None
