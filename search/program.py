@@ -48,60 +48,63 @@ def search(
     #     MoveAction(Coord(6, 4), [Direction.Down]),
     # ]
     
-    # Find the starting position of the red frog
-    red_start = None
-    for coord, cell_state in board.items():
-        if cell_state == CellState.RED:
-            red_start = coord
-            break
-    
-    # Return None if no red frog is found
-    if not red_start:
-        return None
+    def is_goal(state: dict[Coord, CellState]) -> bool:
+        # Check if any red frog is in the last row (BOARD_N - 1)
+        for coord, cell in state.items():
+            if cell == CellState.RED and coord.r == BOARD_N - 1:
+                return True
+        return False
 
-    # Define valid moves as down, down-left, down-right
-    valid_moves = [Direction.Down, Direction.DownLeft, Direction.DownRight]
+    def get_successors(state: dict[Coord, CellState]) -> list[tuple[dict[Coord, CellState], MoveAction]]:
+        successors = []
+        for coord, cell in state.items():
+            if cell == CellState.RED:
+                for direction in Direction:
+                    try:
+                        new_coord = coord + direction
+                        # Check if new_coord is within bounds and does not wrap around
+                        if abs(new_coord.r - coord.r) > 1 or abs(new_coord.c - coord.c) > 1:
+                            continue  # Skip moves that wrap around the board
 
-    # Initialise a queue and visited set for BFS
-    queue = deque()
+                        if 0 <= new_coord.r < BOARD_N and 0 <= new_coord.c < BOARD_N:
+                            if state.get(new_coord) == CellState.LILY_PAD:
+                                new_state = state.copy()
+                                new_state[new_coord] = CellState.RED
+                                new_state[coord] = CellState.LILY_PAD
+                                successors.append((new_state, MoveAction(coord, direction)))
+                            elif state.get(new_coord) in {CellState.RED, CellState.BLUE}:
+                                jump_coord = new_coord + direction
+                                # Check if jump_coord is within bounds and does not wrap around
+                                if abs(jump_coord.r - coord.r) > 2 or abs(jump_coord.c - coord.c) > 2:
+                                    continue  # Skip moves that wrap around the board
+
+                                if 0 <= jump_coord.r < BOARD_N and 0 <= jump_coord.c < BOARD_N:
+                                    if state.get(jump_coord) == CellState.LILY_PAD:
+                                        new_state = state.copy()
+                                        new_state[jump_coord] = CellState.RED
+                                        new_state[coord] = CellState.LILY_PAD
+                                        new_state[new_coord] = CellState.LILY_PAD
+                                        successors.append((new_state, MoveAction(coord, [direction, direction])))
+                    except ValueError:
+                        # Ignore moves that result in out-of-bounds coordinates
+                        continue
+        return successors
+
+    start_state = board
+    queue = deque([(start_state, [])])
     visited = set()
+    visited.add(frozenset(start_state.items()))
 
-    # Add the starting position to the queue
-    queue.append((red_start, []))
-    visited.add(red_start)
-
-    # Find the shortest path to the last row using BFS
     while queue:
-        current_position, path = queue.popleft()
+        current_state, path = queue.popleft()
 
-        # Check if the current position is in the last row
-        if current_position.r == BOARD_N - 1:
+        if is_goal(current_state):
             return path
 
-        # Generate all possible next positions
-        for move in valid_moves:
-            adjacent = current_position + move # next position if the frog moves to the adjacent cell
-            adjacent_in_board = (0 <= adjacent.r < BOARD_N and 0 <= adjacent.c < BOARD_N)
+        for successor, move in get_successors(current_state):
+            successor_key = frozenset(successor.items())
+            if successor_key not in visited:
+                visited.add(successor_key)
+                queue.append((successor, path + [move]))
 
-            # Adjacent move: check if there is an unvisited lily pad
-            if (
-                adjacent_in_board 
-                and board[adjacent] == CellState.LILY_PAD 
-                and adjacent not in visited
-            ):
-                queue.append((adjacent, path + [MoveAction(current_position, move)]))
-                visited.add(adjacent)
- 
-            jump_position = adjacent + move  # next position if the frog jumps over the lily pad
-            jump_in_board = (0 <= jump_position.r < BOARD_N and 0 <= jump_position.c < BOARD_N)
-
-            # Jump move: check if there is a frog and a valid landing spot
-            if (
-                adjacent_in_board and board[adjacent] in {CellState.RED, CellState.BLUE}  # A frog is in the way
-                and jump_in_board and board[jump_position] == CellState.LILY_PAD  # Landing spot is a lily pad
-                and jump_position not in visited 
-            ):
-                queue.append((jump_position, path + [MoveAction(coord, move)]))
-                visited.add(jump_position)
-    # If no path is found, return None
     return None
