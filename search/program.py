@@ -49,13 +49,45 @@ def search(
     # ]
     
     # Find the starting position of the red frog
+    red_start = None
+    for coord, cell_state in board.items():
+        if cell_state == CellState.RED:
+            red_start = coord
+            break
     
-    #return none if no red frog is founnd
+    # Return None if no red frog is found
+    if not red_start:
+        return None
 
-    # define valid moves as down, down-left, down-right
+    # Define valid moves as down, down-left, down-right
+    valid_moves = [Direction.Down, Direction.DownLeft, Direction.DownRight]
 
-    # initialise a queue and visited set for BFS 
+    # Initialise a queue and visited set for BFS
+    queue = deque()
+    visited = set()
 
-    #find the shortest path to the last row using BFS
+    # Add the starting position to the queue
+    queue.append((red_start, []))
+    visited.add(red_start)
 
-    #if no path is found return None
+    # Find the shortest path to the last row using BFS
+    while queue:
+        current_position, path = queue.popleft()
+
+        # Check if the current position is in the last row
+        if current_position.y == 0:
+            return path
+
+        # Generate all possible next positions
+        for move in valid_moves:
+            next_position = current_position + move
+
+            # check if the next position is valid. This means there is a lily pad adjacent or a frog followed immediately by a lily pad.  The position is not visited. 
+            adjacent_move = board[next_position] == CellState.LILY_PAD
+            hop = next_position + move in board and board[next_position + move] == CellState.LILY_PAD
+            if next_position in board and (adjacent_move or hop) and next_position not in visited:
+                queue.append((next_position, path + [MoveAction(next_position, [move])]))
+                visited.add(next_position)
+
+    # If no path is found, return None
+    return None
