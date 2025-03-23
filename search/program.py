@@ -59,35 +59,45 @@ def search(
         successors = []
         for coord, cell in state.items():
             if cell == CellState.RED:
+                # Check for single adjacent moves to a lily pad
                 for direction in Direction:
                     try:
                         new_coord = coord + direction
-                        # Check if new_coord is within bounds and does not wrap around
-                        if abs(new_coord.r - coord.r) > 1 or abs(new_coord.c - coord.c) > 1:
-                            continue  # Skip moves that wrap around the board
-
                         if 0 <= new_coord.r < BOARD_N and 0 <= new_coord.c < BOARD_N:
-                            if state.get(new_coord) == CellState.LILY_PAD:
-                                new_state = state.copy()
-                                new_state[new_coord] = CellState.RED
-                                new_state[coord] = CellState.LILY_PAD
-                                successors.append((new_state, MoveAction(coord, direction)))
-                            elif state.get(new_coord) in {CellState.RED, CellState.BLUE}:
-                                jump_coord = new_coord + direction
-                                # Check if jump_coord is within bounds and does not wrap around
-                                if abs(jump_coord.r - coord.r) > 2 or abs(jump_coord.c - coord.c) > 2:
-                                    continue  # Skip moves that wrap around the board
-
-                                if 0 <= jump_coord.r < BOARD_N and 0 <= jump_coord.c < BOARD_N:
-                                    if state.get(jump_coord) == CellState.LILY_PAD:
-                                        new_state = state.copy()
-                                        new_state[jump_coord] = CellState.RED
-                                        new_state[coord] = CellState.LILY_PAD
-                                        new_state[new_coord] = CellState.LILY_PAD
-                                        successors.append((new_state, MoveAction(coord, [direction, direction])))
+                            if abs(new_coord.r - coord.r) <= 1 and abs(new_coord.c - coord.c) <= 1:
+                                if state.get(new_coord) == CellState.LILY_PAD:
+                                    new_state = state.copy()
+                                    new_state[new_coord] = CellState.RED
+                                    new_state[coord] = CellState.LILY_PAD
+                                    successors.append((new_state, MoveAction(coord, direction)))
                     except ValueError:
-                        # Ignore moves that result in out-of-bounds coordinates
                         continue
+
+                # Check for jumps over frogs onto a lily pad
+                def find_jumps(current_coord, visited, directions):
+                    for direction in Direction:
+                        try:
+                            intermediate_coord = current_coord + direction
+                            jump_coord = intermediate_coord + direction
+                            if (
+                                0 <= jump_coord.r < BOARD_N
+                                and 0 <= jump_coord.c < BOARD_N
+                                and state.get(intermediate_coord) in {CellState.RED, CellState.BLUE}
+                                and state.get(jump_coord) == CellState.LILY_PAD
+                                and jump_coord not in visited
+                            ):
+                                if abs(jump_coord.r - coord.r) <= 2 and abs(jump_coord.c - coord.c) <= 2:
+                                    new_state = state.copy()
+                                    new_state[jump_coord] = CellState.RED
+                                    new_state[coord] = CellState.LILY_PAD
+                                    new_state[intermediate_coord] = CellState.LILY_PAD
+                                    visited.add(jump_coord)
+                                    successors.append((new_state, MoveAction(coord, directions + [direction])))
+                                    find_jumps(jump_coord, visited, directions + [direction])
+                        except ValueError:
+                            continue
+
+                find_jumps(coord, {coord}, [])
         return successors
 
     start_state = board
