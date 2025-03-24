@@ -1,10 +1,19 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
+# Alisa Blakeney, 1178580
+# Using A* algorithm to find the shortest path for the red frog
+
 
 from .core import BOARD_N, CellState, Coord, Direction, MoveAction
 from .utils import render_board
 from collections import deque
+import heapq
 
+
+# Function to calculate the Manhattan distance heuristic for A* search
+def manhattan_distance(coord: Coord) -> int:
+# The Manhattan distance is the vertical distance to the last row (goal row)
+    return BOARD_N - 1 - coord.r
 
 def search(
     board: dict[Coord, CellState]
@@ -49,23 +58,27 @@ def search(
     # ]
     
     def is_goal(state: dict[Coord, CellState]) -> bool:
-        # Check if any red frog is in the last row (BOARD_N - 1)
+    # Goal is achieved if the red frog is in the last row (BOARD_N - 1)
         for coord, cell in state.items():
             if cell == CellState.RED and coord.r == BOARD_N - 1:
                 return True
         return False
 
+    # Get all possible successor states from the current state
     def get_successors(state: dict[Coord, CellState], path: list[MoveAction]) -> list[tuple[dict[Coord, CellState], list[MoveAction]]]:
         successors = []
+        # Iterate through all coordinates and cells in the current state
         for coord, cell in state.items():
             if cell == CellState.RED:
                 # Check for single adjacent moves to a lily pad
                 for direction in Direction:
                     try:
+                        # Calculate new coordinate after moving in the given direction
                         new_coord = coord + direction
                         if 0 <= new_coord.r < BOARD_N and 0 <= new_coord.c < BOARD_N:
                             if abs(new_coord.r - coord.r) <= 1 and abs(new_coord.c - coord.c) <= 1:
                                 if state.get(new_coord) == CellState.LILY_PAD:
+                                    # Create a new state with the move applied
                                     new_state = state.copy()
                                     new_state[new_coord] = CellState.RED
                                     new_state[coord] = CellState.LILY_PAD
@@ -77,6 +90,7 @@ def search(
                 def find_jumps(current_coord, visited, current_path, directions):
                     for direction in Direction:
                         try:
+                            # Calculate intermediate and jump coordinates
                             intermediate_coord = current_coord + direction
                             jump_coord = intermediate_coord + direction
                             if (
@@ -87,6 +101,7 @@ def search(
                                 and jump_coord not in visited
                             ):
                                 if abs(jump_coord.r - coord.r) <= 2 and abs(jump_coord.c - coord.c) <= 2:
+                                    # Create a new state with the jump applied
                                     new_state = state.copy()
                                     new_state[jump_coord] = CellState.RED
                                     new_state[coord] = CellState.LILY_PAD
@@ -99,24 +114,35 @@ def search(
                         except ValueError:
                             continue
 
+                # Start finding jumps from the current coordinate
                 find_jumps(coord, {coord}, path, [])
         return successors
 
+    # Initialize the start state and priority queue for A* search
     start_state = board
-    queue = deque([(start_state, [])])
-    visited = set()
+    open_list = []
+    # Push the start state to the priority queue with initial cost 0
+    heapq.heappush(open_list, (0, id(start_state), start_state, []))
+    visited = set()  # Set to keep track of visited states
     visited.add(frozenset(start_state.items()))
 
-    while queue:
-        current_state, path = queue.popleft()
+    # A* search loop
+    while open_list:
+        # Pop the state with the lowest cost from the priority queue
+        _, _, current_state, path = heapq.heappop(open_list)
 
+        # Check if the goal state is reached
         if is_goal(current_state):
             return path
 
+        # Get all successor states from the current state
         for successor, new_path in get_successors(current_state, path):
             successor_key = frozenset(successor.items())
             if successor_key not in visited:
                 visited.add(successor_key)
-                queue.append((successor, new_path))
+                # Calculate the cost as the length of the path plus the heuristic
+                cost = len(new_path) + manhattan_distance(next(iter(successor.keys())))
+                # Push the successor state to the priority queue with the calculated cost
+                heapq.heappush(open_list, (cost, id(successor), successor, new_path))
 
-    return None
+    return None  # Return None if no path is found
