@@ -118,7 +118,7 @@ def search(
                 find_jumps(coord, {coord}, path, [])
         return successors
 
-    # Initialize the start state and priority queue for A* search
+    # Initialize the start state and priority queue for Dijkstra's algorithm
     start_state = board
     open_list = []
     # Push the start state to the priority queue with initial cost 0
@@ -126,7 +126,7 @@ def search(
     visited = set()  # Set to keep track of visited states
     visited.add(frozenset(start_state.items()))
 
-    # A* search loop
+    # Dijkstra's algorithm search loop
     while open_list:
         # Pop the state with the lowest cost from the priority queue
         _, _, current_state, path = heapq.heappop(open_list)
@@ -140,8 +140,7 @@ def search(
             successor_key = frozenset(successor.items())
             if successor_key not in visited:
                 visited.add(successor_key)
-                # Calculate the cost as the length of the path plus the heuristic
-                cost = len(new_path) + manhattan_distance(next(iter(successor.keys())))
+                cost = len(new_path)  # Dijkstra's algorithm does not use a heuristic
                 # Push the successor state to the priority queue with the calculated cost
                 heapq.heappush(open_list, (cost, id(successor), successor, new_path))
 
