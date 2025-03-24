@@ -1,19 +1,13 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
 # Alisa Blakeney, 1178580
-# Using A* algorithm to find the shortest path for the red frog
+# Using Dijkstra's algorithm to find the shortest path for the red frog
 
 
 from .core import BOARD_N, CellState, Coord, Direction, MoveAction
 from .utils import render_board
 from collections import deque
 import heapq
-
-
-# Function to calculate the Manhattan distance heuristic for A* search
-def manhattan_distance(coord: Coord) -> int:
-# The Manhattan distance is the vertical distance to the last row (goal row)
-    return BOARD_N - 1 - coord.r
 
 def search(
     board: dict[Coord, CellState]
