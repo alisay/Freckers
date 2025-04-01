@@ -1,13 +1,19 @@
 # COMP30024 Artificial Intelligence, Semester 1 2025
 # Project Part A: Single Player Freckers
 # Alisa Blakeney, 1178580
-# Using Dijkstra's algorithm to find the shortest path for the red frog
+# Using A* algorithm to find the shortest path for the red frog
 
 
 from .core import BOARD_N, CellState, Coord, Direction, MoveAction
 from .utils import render_board
 from collections import deque
 import heapq
+
+
+# Function to calculate the Manhattan distance heuristic for A* search
+def manhattan_distance(coord: Coord) -> int:
+# The Manhattan distance is the vertical distance to the last row (goal row)
+    return BOARD_N - 1 - coord.r
 
 def search(
     board: dict[Coord, CellState]
@@ -112,7 +118,7 @@ def search(
                 find_jumps(coord, {coord}, path, [])
         return successors
 
-    # Initialize the start state and priority queue for Dijkstra's algorithm
+    # Initialize the start state and priority queue for A* search
     start_state = board
     open_list = []
     # Push the start state to the priority queue with initial cost 0
@@ -120,7 +126,7 @@ def search(
     visited = set()  # Set to keep track of visited states
     visited.add(frozenset(start_state.items()))
 
-    # Dijkstra's algorithm search loop
+    # A* search loop
     while open_list:
         # Pop the state with the lowest cost from the priority queue
         _, _, current_state, path = heapq.heappop(open_list)
@@ -134,7 +140,8 @@ def search(
             successor_key = frozenset(successor.items())
             if successor_key not in visited:
                 visited.add(successor_key)
-                cost = len(new_path)  # Dijkstra's algorithm does not use a heuristic
+                # Calculate the cost as the length of the path plus the heuristic
+                cost = len(new_path) + manhattan_distance(next(iter(successor.keys())))
                 # Push the successor state to the priority queue with the calculated cost
                 heapq.heappush(open_list, (cost, id(successor), successor, new_path))
 
