@@ -88,9 +88,8 @@ def search(
 
                 # Check for jumps over frogs onto a lily pad
                 def find_jumps(current_coord, visited, current_path, directions):
-                    found_jump = False
                     for direction in Direction:
-                        # try:
+                        try:
                             # Calculate intermediate and jump coordinates
                             intermediate_coord = current_coord + direction
                             jump_coord = intermediate_coord + direction
@@ -101,22 +100,19 @@ def search(
                                 and state.get(jump_coord) == CellState.LILY_PAD
                                 and jump_coord not in visited
                             ):
-                                found_jump = True
                                 if abs(jump_coord.r - coord.r) <= 2 and abs(jump_coord.c - coord.c) <= 2:
                                     # Create a new state with the jump applied
                                     new_state = state.copy()
                                     new_state[jump_coord] = CellState.RED
                                     new_state[coord] = CellState.LILY_PAD
                                     new_state[intermediate_coord] = CellState.LILY_PAD
-                                    new_path = current_path + [jump_coord]
+                                    new_path = current_path + [MoveAction(current_coord, direction)]
                                     visited.add(jump_coord)
-                                    # Recursively continue the jump sequence
                                     find_jumps(jump_coord, visited, new_path, directions + [direction])
-                        # except ValueError:
-                        #     continue
-                    # If no more jumps are possible, add the entire jump sequence as **one move**
-                    if not found_jump and len(current_path) > 0:
-                        successors.append((new_state, path + [MoveAction(coord, directions)]))
+                                    successors.append((new_state, path + [MoveAction(coord, directions + [direction])]))
+                                    break  # Ensure only one entry is added for multiple jumps
+                        except ValueError:
+                            continue
 
                 # Start finding jumps from the current coordinate
                 find_jumps(coord, {coord}, path, [])
