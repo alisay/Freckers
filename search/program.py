@@ -70,23 +70,7 @@ def search(
         # Iterate through all coordinates and cells in the current state
         for coord, cell in state.items():
             if cell == CellState.RED:
-                # Check for single adjacent moves to a lily pad
-                for direction in Direction:
-                    try:
-                        # Calculate new coordinate after moving in the given direction
-                        new_coord = coord + direction
-                        if 0 <= new_coord.r < BOARD_N and 0 <= new_coord.c < BOARD_N:
-                            if abs(new_coord.r - coord.r) <= 1 and abs(new_coord.c - coord.c) <= 1:
-                                if state.get(new_coord) == CellState.LILY_PAD:
-                                    # Create a new state with the move applied
-                                    new_state = state.copy()
-                                    new_state[new_coord] = CellState.RED
-                                    new_state[coord] = CellState.LILY_PAD
-                                    successors.append((new_state, path + [MoveAction(coord, direction)]))
-                    except ValueError:
-                        continue
-
-                # Check for jumps over frogs onto a lily pad
+                # Check for jumps over frogs onto a lily pad first
                 def find_jumps(current_coord, visited, current_path, directions):
                     for direction in Direction:
                         try:
@@ -110,12 +94,27 @@ def search(
                                     visited.add(jump_coord)
                                     find_jumps(jump_coord, visited, new_path, directions + [direction])
                                     successors.append((new_state, path + [MoveAction(coord, directions + [direction])]))
-                                    break  # Ensure only one entry is added for multiple jumps
                         except ValueError:
                             continue
 
                 # Start finding jumps from the current coordinate
                 find_jumps(coord, {coord}, path, [])
+
+                # Check for single adjacent moves to a lily pad
+                for direction in Direction:
+                    try:
+                        # Calculate new coordinate after moving in the given direction
+                        new_coord = coord + direction
+                        if 0 <= new_coord.r < BOARD_N and 0 <= new_coord.c < BOARD_N:
+                            if abs(new_coord.r - coord.r) <= 1 and abs(new_coord.c - coord.c) <= 1:
+                                if state.get(new_coord) == CellState.LILY_PAD:
+                                    # Create a new state with the move applied
+                                    new_state = state.copy()
+                                    new_state[new_coord] = CellState.RED
+                                    new_state[coord] = CellState.LILY_PAD
+                                    successors.append((new_state, path + [MoveAction(coord, direction)]))
+                    except ValueError:
+                        continue
         return successors
 
     # Initialize the start state and priority queue for A* search
