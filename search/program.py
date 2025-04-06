@@ -7,7 +7,6 @@
 from .core import BOARD_N, CellState, Coord, Direction, MoveAction
 from .utils import render_board
 from collections import deque
-import heapq
 
 def search(
     board: dict[Coord, CellState]
@@ -60,10 +59,11 @@ def search(
 
     def get_successors(state: dict[Coord, CellState], path: list[MoveAction]) -> list[tuple[dict[Coord, CellState], list[MoveAction]]]:
         successors = []
+        valid_directions = [Direction.Down, Direction.DownLeft, Direction.DownRight, Direction.Left, Direction.Right]
         for coord, cell in state.items():
             if cell == CellState.RED:
                 # Check for single adjacent moves to a lily pad
-                for direction in Direction:
+                for direction in valid_directions:
                     try:
                         new_coord = coord + direction
                         if 0 <= new_coord.r < BOARD_N and 0 <= new_coord.c < BOARD_N:
@@ -78,7 +78,7 @@ def search(
 
                 # Check for jumps over frogs onto a lily pad
                 def find_jumps(start_coord, current_coord, visited, current_directions):
-                    for direction in Direction:
+                    for direction in valid_directions:
                         try:
                             intermediate_coord = current_coord + direction
                             jump_coord = intermediate_coord + direction
