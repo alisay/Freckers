@@ -9,12 +9,6 @@ from .utils import render_board
 from collections import deque
 import heapq
 
-
-# Function to calculate the Manhattan distance heuristic for A* search
-def manhattan_distance(coord: Coord) -> int:
-# The Manhattan distance is the vertical distance to the last row (goal row)
-    return BOARD_N - 1 - coord.r
-
 def search(
     board: dict[Coord, CellState]
 ) -> list[MoveAction] | None:
@@ -58,105 +52,79 @@ def search(
     # ]
     
     def is_goal(state: dict[Coord, CellState]) -> bool:
-    # Goal is achieved if the red frog is in the last row (BOARD_N - 1)
+        # Check if any red frog is in the last row (BOARD_N - 1)
         for coord, cell in state.items():
             if cell == CellState.RED and coord.r == BOARD_N - 1:
                 return True
         return False
 
-    # Get all possible successor states from the current state
-    def get_successors(state: dict[Coord, CellState], path: list[MoveAction]) -> list[tuple[dict[Coord, CellState], list[MoveAction]]]: # List of (state, path) tuples
+    def get_successors(state: dict[Coord, CellState], path: list[MoveAction]) -> list[tuple[dict[Coord, CellState], list[MoveAction]]]:
         successors = []
-        # Iterate through all coordinates and cells in the current state
         for coord, cell in state.items():
             if cell == CellState.RED:
-                # Check for jumps over frogs onto a lily pad
-                def find_jumps(current_coord, visited, current_path, directions):
-                    # print("PATH", current_path)
-                    consecutive_jumps = []
-                    new_jump_coord = Coord(0, 0)
-                    # found_jump = False
-                    for direction in Direction:
-                        try:
-                            # Calculate intermediate and jump coordinates
-                            intermediate_coord = current_coord + direction
-                            jump_coord = intermediate_coord + direction
-                            if (
-                                0 <= jump_coord.r < BOARD_N # Check if the jump coordinate is within the board
-                                and 0 <= jump_coord.c < BOARD_N # Check if the jump coordinate is within the board
-                                and state.get(intermediate_coord) in {CellState.RED, CellState.BLUE} # Check if the intermediate coordinate has a frog
-                                and state.get(jump_coord) == CellState.LILY_PAD # Check if the jump coordinate has a lily pad
-                                and jump_coord not in visited
-                            ):
-                                # found_jump = True
-                                if abs(jump_coord.r - coord.r) <= 2 and abs(jump_coord.c - coord.c) <= 2: # Check the jump will not wrap around the board
-                                    # Create a new state with the jump applied
-                                    new_state = state.copy() # Copy the current state
-                                    new_state[jump_coord] = CellState.RED # Move the red frog to the jump coordinate
-                                    del new_state[current_coord] #remove the lily pad from the current coordinate
-                                    new_path = current_path + [MoveAction(current_coord, direction)]
-                                    visited.add(jump_coord)
-                                    find_jumps(jump_coord, visited, new_path, directions + [direction])
-                                    # successors.append((new_state, path + [MoveAction(coord, directions)]))
-                                    consecutive_jumps.append((new_state, path + [MoveAction(coord, directions + [direction])]))
-                                    # print("JUMPS",consecutive_jumps)
-                        except ValueError:
-                            continue
-
-                    # Append all found consecutive jumps as successors
-                    successors.extend(consecutive_jumps)
-
-
-                    # if not found_jump and len(current_path) > 0:
-                        # print("JUMPS",consecutive_jumps)
-                        # successors.append((new_state, path + [MoveAction(coord, directions)]))
-                        # successors.extend(consecutive_jumps)
-
-                # Start finding jumps from the current coordinate
-                find_jumps(coord, {coord}, path, [])
-
                 # Check for single adjacent moves to a lily pad
                 for direction in Direction:
                     try:
-                        # Calculate new coordinate after moving in the given direction
                         new_coord = coord + direction
                         if 0 <= new_coord.r < BOARD_N and 0 <= new_coord.c < BOARD_N:
                             if abs(new_coord.r - coord.r) <= 1 and abs(new_coord.c - coord.c) <= 1:
                                 if state.get(new_coord) == CellState.LILY_PAD:
-                                    # Create a new state with the move applied
                                     new_state = state.copy()
-                                    new_state[new_coord] = CellState.RED 
-                                    del new_state[coord]
+                                    new_state[new_coord] = CellState.RED
+                                    del new_state[coord]  
                                     successors.append((new_state, path + [MoveAction(coord, direction)]))
                     except ValueError:
                         continue
+
+                # Check for jumps over frogs onto a lily pad
+                def find_jumps(start_coord, current_coord, visited, current_directions):
+                    for direction in Direction:
+                        try:
+                            intermediate_coord = current_coord + direction
+                            jump_coord = intermediate_coord + direction
+                            if (
+                                0 <= jump_coord.r < BOARD_N
+                                and 0 <= jump_coord.c < BOARD_N
+                                and state.get(intermediate_coord) in {CellState.RED, CellState.BLUE}
+                                and state.get(jump_coord) == CellState.LILY_PAD
+                                and jump_coord not in visited
+                            ):
+                                new_directions = current_directions + [direction]
+                                new_state = state.copy()
+                                new_state[jump_coord] = CellState.RED
+                                del new_state[start_coord]
+                                new_state[intermediate_coord] = CellState.LILY_PAD
+                                visited.add(jump_coord)
+
+                                # Recursive continuation
+                                find_jumps(start_coord, jump_coord, visited, new_directions)
+
+                                # After finishing the sequence, add the move
+                                successors.append(
+                                    (new_state, path + [MoveAction(start_coord, new_directions)])
+                                )
+                        except ValueError:
+                            continue
+
+                find_jumps(coord, coord, {coord}, [])
+
         return successors
-    
-    # Initialize the start state and priority queue for A* search
+
     start_state = board
-    open_list = []
-    # Push the start state to the priority queue with initial cost 0
-    heapq.heappush(open_list, (0, id(start_state), start_state, []))
-    visited = set()  # Set to keep track of visited states
-    visited.add(frozenset(start_state.items()))
+    queue = deque([(start_state, [])]) # Use deque for BFS
+    visited = set() # Use a set to track visited states
+    visited.add(frozenset(start_state.items())) # Use frozenset to make it hashable
 
-    # A* search loop
-    while open_list:
-        # Pop the state with the lowest cost from the priority queue
-        _, _, current_state, path = heapq.heappop(open_list)
+    while queue:
+        current_state, path = queue.popleft() 
 
-        # Check if the goal state is reached
         if is_goal(current_state):
             return path
 
-        # Get all successor states from the current state
-        for successor, new_path in get_successors(current_state, path):
-            successor_key = frozenset(successor.items()) # Convert the state to a hashable key
+        for successor, new_path in get_successors(current_state, path): 
+            successor_key = frozenset(successor.items())  
             if successor_key not in visited:
-                visited.add(successor_key) 
-                # Calculate the cost as the length of the path plus the heuristic
-                cost = len(new_path) + manhattan_distance(next(iter(successor.keys()))) 
-                # Push the successor state to the priority queue with the calculated cost
-                heapq.heappush(open_list, (cost, id(successor), successor, new_path))
+                visited.add(successor_key)
+                queue.append((successor, new_path))
 
-    return None  # Return None if no path is found
+    return None
